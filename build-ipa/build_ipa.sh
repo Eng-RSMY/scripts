@@ -144,7 +144,7 @@ fi
 
 cd - >/dev/null
 ##########################################################################################
-
+xattr -cr "$BUILDS_DIR/Payload/$BUNDLE_NAME" ## cleaning the bundle from resource fork
 cp "$PROV_PROFILE_PATH" "$BUILDS_DIR/Payload/$BUNDLE_NAME/embedded.mobileprovision" >/dev/null
 codesign --force --sign "$SIGNING_IDENTITY" -i "$PACKAGE_NAME" --entitlements "$BUILDS_DIR/entitlements.plist" --timestamp=none "$BUILDS_DIR/Payload/$BUNDLE_NAME"
 
