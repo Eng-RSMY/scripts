@@ -15,6 +15,14 @@ function fileexists {
 	fi
 }
 
+function validateZip {
+	IS_IOS_BUILD=$(unzip -l  "$1" | grep "Payload/$" | wc -l)
+	if [ $IS_IOS_BUILD  -eq 0 ]; then
+		echo "This application is built for simulator please provide iOS build to convert into .ipa";
+		exit 1;
+	fi
+}
+
 if [ "$#" -ne 2 ]; then
 	echo "Usage: $0 <MechDome app.zip> <provisioning profile> <entitlements>"
 	exit 1
@@ -25,11 +33,13 @@ PROV_PROFILE_PATH=$(realpath "$2")
 
 fileexists "$APP_PATH"
 fileexists "$PROV_PROFILE_PATH"
+validateZip "$APP_PATH"
 
 BUILDS_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir'`
 pushd "$BUILDS_DIR" > /dev/null
 
 #################### Gathering information about codesigning identity,TeamID ####################
+
 unzip "$APP_PATH" >/dev/null
 pushd "$BUILDS_DIR/Payload"  >/dev/null
 BUNDLE_NAME=$(ls | grep *.app)
