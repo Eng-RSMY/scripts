@@ -24,12 +24,14 @@ function validateZip {
 }
 
 if [ "$#" -ne 2 ]; then
-	echo "Usage: $0 <MechDome app.zip> <provisioning profile> <entitlements>"
+	echo "Usage: $0 <MechDome app.zip> <provisioning profile> <adomains>"
+	echo "adomains is nothing but Comma seperated list of Associated domain names, pass this argument only if app implements Firebase AppIndexing/DynamicLinks/AppInvites "
 	exit 1
 fi
 
 APP_PATH=$(realpath "$1")
 PROV_PROFILE_PATH=$(realpath "$2")
+ASSOCIATED_DOMAINS="$3"
 
 fileexists "$APP_PATH"
 fileexists "$PROV_PROFILE_PATH"
@@ -68,7 +70,21 @@ if [[ $exitCode == 0 ]]; then # OK
 	/usr/libexec/PlistBuddy -c "Delete com.apple.developer.icloud-services CloudDocuments" "$BUILDS_DIR/entitlements.plist"  2>/dev/null 
 	/usr/libexec/PlistBuddy -c "Add com.apple.developer.icloud-services array" "$BUILDS_DIR/entitlements.plist"  2>/dev/null
 	/usr/libexec/PlistBuddy -c "Add com.apple.developer.icloud-services:0 string CloudDocuments" "$BUILDS_DIR/entitlements.plist"  2>/dev/null
-
+	if [ ! -z "$ASSOCIATED_DOMAINS" ]; then
+        /usr/libexec/PlistBuddy -c "Delete com.apple.developer.associated-domains array" "$BUILDS_DIR/entitlements.plist"  2>/dev/null
+        /usr/libexec/PlistBuddy -c "Add com.apple.developer.associated-domains array" "$BUILDS_DIR/entitlements.plist"  2>/dev/null
+        let COUNT=0;
+        IFS=',' read -ra strings <<< "$ASSOCIATED_DOMAINS";
+        for i in "${strings[@]}"
+        do
+                /usr/libexec/PlistBuddy -c "Add com.apple.developer.associated-domains:$COUNT string applinks:$i" ./entitlements.plist  2>/dev/null
+                ((COUNT++))
+                if [[ $COUNT -eq 20 ]]; then
+        			echo "Can not add more then 20 associated-domains as per apple guide lines";
+        			break;
+        		fi
+        done
+	fi
 	/usr/libexec/PlistBuddy -c "Delete com.apple.developer.icloud-container-environment" "$BUILDS_DIR/entitlements.plist"  2>/dev/null
 	/usr/libexec/PlistBuddy -c "Delete com.apple.developer.icloud-container-development-container-identifiers" "$BUILDS_DIR/entitlements.plist"  2>/dev/null 
 fi
